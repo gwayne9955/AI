@@ -16,6 +16,10 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 pd.options.display.max_rows = 10
 pd.options.display.float_format = '{:.1f}'.format
 
+california_housing_dataframe = pd.read_csv("http://storage.googleapis.com/mledu-datasets/california_housing_train.csv", sep=",")
+california_housing_dataframe = california_housing_dataframe.reindex(np.random.permutation(california_housing_dataframe.index))
+california_housing_dataframe["median_house_value"] /= 1000.0
+
 def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     """Trains a linear regression model of one feature.
   
@@ -45,7 +49,7 @@ def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
     return (features, labels)
 
 
-def train_model(learning_rate, steps, batch_size, input_feature="total_rooms"):
+def train_model(learning_rate, steps, batch_size, input_feature="total_rooms", my_label="median_house_value"):
     """Trains a linear regression model of one feature.
     
     Args:
@@ -65,7 +69,6 @@ def train_model(learning_rate, steps, batch_size, input_feature="total_rooms"):
     # Configure a numeric feature column for total_rooms.
     my_feature_data = california_housing_dataframe[[my_feature]]
     # Define the label.
-    my_label = "median_house_value"
     targets = california_housing_dataframe[my_label]
 
     # Create feature columns.
@@ -146,13 +149,13 @@ def train_model(learning_rate, steps, batch_size, input_feature="total_rooms"):
 
     print("Final RMSE (on training data): %0.2f" % root_mean_squared_error)
 
-california_housing_dataframe = pd.read_csv("http://storage.googleapis.com/mledu-datasets/california_housing_train.csv", sep=",")
-california_housing_dataframe = california_housing_dataframe.reindex(np.random.permutation(california_housing_dataframe.index))
-california_housing_dataframe["median_house_value"] /= 1000.0
-"""california_housing_dataframe.describe()"""
+    return calibration_data
 
-train_model(
-    learning_rate=0.00002,
+california_housing_dataframe["rooms_per_person"] = (
+    california_housing_dataframe["total_rooms"] / california_housing_dataframe["population"])
+
+calibration_data = train_model(
+    learning_rate=0.05,
     steps=500,
-    batch_size=5
-)
+    batch_size=5,
+    input_feature="rooms_per_person")
